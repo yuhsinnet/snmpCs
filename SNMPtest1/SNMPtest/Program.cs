@@ -1,6 +1,9 @@
-﻿using System;
+﻿using SnmpSharpNet;
+using System;
 using System.Net;
-using SnmpSharpNet;
+using System.Threading;
+
+
 
 namespace snmpget
 {
@@ -8,6 +11,19 @@ namespace snmpget
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("Start SNMP");
+            Timer timer = new Timer(new TimerCallback(Polltime));
+            timer.Change(0, 10000);
+
+
+            Console.ReadLine();
+        }
+
+        private static void Polltime(object state)
+        {
+
+            Console.Clear();
+
             // SNMP community name
             OctetString community = new OctetString("public");
 
@@ -19,7 +35,7 @@ namespace snmpget
             // IpAddress class is easy to use here because
             //  it will try to resolve constructor parameter if it doesn't
             //  parse to an IP address
-            IpAddress agent = new IpAddress("192.168.0.4");
+            IpAddress agent = new IpAddress("192.168.0.111");
 
             // Construct target
             UdpTarget target = new UdpTarget((IPAddress)agent, 161, 2000, 1);
@@ -29,12 +45,19 @@ namespace snmpget
             pdu.VbList.Add("1.3.6.1.2.1.1.1.0"); //sysDescr
             pdu.VbList.Add("1.3.6.1.2.1.1.2.0"); //sysObjectID
             pdu.VbList.Add("1.3.6.1.2.1.1.3.0"); //sysUpTime
-            pdu.VbList.Add("1.3.6.1.2.1.1.4.0"); //sysContact
+
             pdu.VbList.Add("1.3.6.1.2.1.1.5.0"); //sysName
+            pdu.VbList.Add("1.3.6.1.4.1.24681.1.2.15.1.3.1");//nasFan
+
+
+            pdu.VbList.Add("1.3.6.1.4.1.24681.1.2.11.1.7.1");//HDD1 S.M.A.R.T
+            pdu.VbList.Add("1.3.6.1.4.1.24681.1.2.11.1.7.2");//HDD2 S.M.A.R.T
+            pdu.VbList.Add("1.3.6.1.4.1.24681.1.2.11.1.7.3");//HDD3 S.M.A.R.T
+            pdu.VbList.Add("1.3.6.1.4.1.24681.1.2.11.1.7.4");//HDD4 S.M.A.R.T
 
             // Make SNMP request
             SnmpV1Packet result = (SnmpV1Packet)target.Request(pdu, param);
-
+            
             // If result is null then agent didn't reply or we couldn't parse the reply.
             if (result != null)
             {
@@ -46,6 +69,9 @@ namespace snmpget
                     Console.WriteLine("Error in SNMP reply. Error {0} index {1}",
                         result.Pdu.ErrorStatus,
                         result.Pdu.ErrorIndex);
+
+                    Timer timer = (Timer)state;
+                    timer.Dispose();
                 }
                 else
                 {
@@ -63,14 +89,28 @@ namespace snmpget
                         result.Pdu.VbList[2].Oid.ToString(),
                         SnmpConstants.GetTypeName(result.Pdu.VbList[2].Value.Type),
                         result.Pdu.VbList[2].Value.ToString());
-                    Console.WriteLine("sysContact({0}) ({1}): {2}",
+                    Console.WriteLine("sysName({0}) ({1}): {2}",
                         result.Pdu.VbList[3].Oid.ToString(),
                         SnmpConstants.GetTypeName(result.Pdu.VbList[3].Value.Type),
                         result.Pdu.VbList[3].Value.ToString());
-                    Console.WriteLine("sysName({0}) ({1}): {2}",
+                    Console.WriteLine("nasFAN({0}): {1}",
                         result.Pdu.VbList[4].Oid.ToString(),
-                        SnmpConstants.GetTypeName(result.Pdu.VbList[4].Value.Type),
                         result.Pdu.VbList[4].Value.ToString());
+
+
+
+                    Console.WriteLine("HDD1 S.M.A.R.T: {0}",                        
+                      result.Pdu.VbList[5].Value.ToString());
+
+                    Console.WriteLine("HDD2 S.M.A.R.T: {0}",                      
+                      result.Pdu.VbList[6].Value.ToString());
+
+                    Console.WriteLine("HDD3 S.M.A.R.T: {0}",                      
+                      result.Pdu.VbList[7].Value.ToString());
+
+                    Console.WriteLine("HDD4 S.M.A.R.T: {0}",                      
+                      result.Pdu.VbList[8].Value.ToString());
+
                 }
             }
             else
